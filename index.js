@@ -60,6 +60,28 @@ async function run() {
       res.send(result)
     })
 
+    // update jobs
+    app.patch('/jobs/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const body = req.body;
+      const options = { upsert: true };
+
+      const updateJobs = {
+        $set: {
+          job_title:body.job_title,
+          deadline:body.deadline,
+          short_description:body.short_description,
+          category:body.category,
+          minPrice:body.minPrice,
+          maxPrice:body.maxPrice 
+        },
+      };
+
+      const result = await JobsCollection.updateOne(filter, updateJobs, options)
+      res.send(result)
+    })
+
     // bid related
     //post bids
     app.post('/bids', async(req, res)=>{
