@@ -90,7 +90,7 @@ async function run() {
       res.send(result)
     })
 
-    // bid related
+    //! bid related
     //post bids
     app.post('/bids', async(req, res)=>{
       const bids = req.body;
@@ -100,6 +100,29 @@ async function run() {
     //get bids
     app.get('/bids', async(req, res)=>{
       const result = await bidsCollection.find().toArray()
+      res.send(result)
+    })
+
+    // get in some data
+    app.get('/bids/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const result = await bidsCollection.findOne(filter)
+      res.send(result)
+    })
+
+    
+    // update a accept
+    app.patch('/bids/:id', async(req, res)=>{
+      const id = req.body.id;
+      const query = {_id: new ObjectId(id)}
+      const update = req.body;
+      const updateAccept= {
+        $set:{
+          status:update.status
+        }
+      }
+      const result = await bidsCollection.updateOne(query, updateAccept)
       res.send(result)
     })
     // Send a ping to confirm a successful connection
