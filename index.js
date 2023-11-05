@@ -82,6 +82,14 @@ async function run() {
       res.send(result)
     })
 
+    // delete job
+    app.delete('/jobs/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const result = await JobsCollection.deleteOne(filter)
+      res.send(result)
+    })
+
     // bid related
     //post bids
     app.post('/bids', async(req, res)=>{
