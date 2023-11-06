@@ -41,9 +41,10 @@ async function run() {
     });
 
     //get
+    // sort data : http://localhost:5000/jobs?category=Web-development
     app.get("/jobs", async (req, res) => {
+      
       let query = {};
-
       if (req?.query?.email) {
         query = { email: req.query.email };
       }
@@ -102,14 +103,35 @@ async function run() {
       res.send(result);
     });
     //get bids
+    //http://localhost:5000/bids?sortField=status&sortOrder=asc
     app.get("/bids", async (req, res) => {
+       // sort
+       let filter = {}
+       let sort = {}
+       const sortField = req.query.sortField;
+       const sortOrder = req.query.sortOrder;
+
+       console.log(req.query.status);
+       const status = req.query.status;
+       if(status){
+        filter.status = filter
+       }
+
+       if(sortField && sortOrder){
+            sort[sortField] = sortOrder
+       }
+
+
+
+
+
       let query = {}
-      console.log(req.query);
+      // console.log(req.query);
       if(req?.query?.email){
         query = {email: req.query.email}
       }
       
-      const result = await bidsCollection.find(query).toArray();
+      const result = await bidsCollection.find(query,filter).sort(sort).toArray();
       res.send(result);
     });
 
@@ -123,15 +145,16 @@ async function run() {
 
     // update a accept , reject, complete
     app.patch("/bids/:id", async (req, res) => {
-      const id = req.body.id;
+      const id = req.params.id;
       const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
       const update = req.body;
       const updateAccept = {
         $set: {
           status: update.status,
         },
       };
-      const result = await bidsCollection.updateOne(query, updateAccept);
+      const result = await bidsCollection.updateOne(query, updateAccept, options);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
