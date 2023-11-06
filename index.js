@@ -97,12 +97,19 @@ async function run() {
     //post bids
     app.post("/bids", async (req, res) => {
       const bids = req.body;
+
       const result = await bidsCollection.insertOne(bids);
       res.send(result);
     });
     //get bids
     app.get("/bids", async (req, res) => {
-      const result = await bidsCollection.find().toArray();
+      let query = {}
+      console.log(req.query);
+      if(req?.query?.email){
+        query = {email: req.query.email}
+      }
+      
+      const result = await bidsCollection.find(query).toArray();
       res.send(result);
     });
 
