@@ -1,18 +1,25 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+const jwt = require('jsonwebtoken')
+const cookiePerser = require('cookie-parser')
+require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
 
 //middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173'],
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookiePerser())
 
-//4daB0TThbYAlbhgR
-//assignment-11
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+
+
 const uri =
-  "mongodb+srv://assignment-11:4daB0TThbYAlbhgR@cluster0.dzbhwpo.mongodb.net/?retryWrites=true&w=majority";
+  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dzbhwpo.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -23,6 +30,27 @@ const client = new MongoClient(uri, {
   },
 });
 
+// middlewares 
+const logger = (req, res, next) =>{
+  console.log('log: info', req.method, req.url);
+  next();
+}
+
+  // verify jwt token in auth
+  const verifyToken = async(req, res, next)=>{
+    const token = req.cookies?.token;
+    if(!token){
+      return res.status(401).send({message: 'not authraized'})
+    }
+    jwt.verify(token, process.env.JWT_SECRET_TOKEN, (err, decoded)=>{
+      if(err){
+        return res.status(401).send({message: 'unauthorized'})
+      }
+      req.user = decoded
+      next()
+    })
+  }
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -31,10 +59,30 @@ async function run() {
     const JobsCollection = client.db("assignment-11").collection("jobs");
     const bidsCollection = client.db("assignment-11").collection("bids");
 
+    //! auth jwt token related
+    app.post('/jwt',logger, async(req, res)=>{
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET_TOKEN, {expiresIn: '1hr'})
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: false
+      })
+      res.send({success:true})
+    })
+
+    app.post('/logOut', async(req, res)=>{
+      const user = req.body;
+      console.log('log out', user);
+      res.clearCookie('token',{maxAge: 0}).send({message: 'success'})
+    })
+
     //! CRUD Operation
     // job related
     // post
     app.post("/jobs", async (req, res) => {
+
+
+
       const addJobs = req.body;
       const result = await JobsCollection.insertOne(addJobs);
       res.send(result);
@@ -43,7 +91,12 @@ async function run() {
     //get
     // sort data : http://localhost:5000/jobs?category=Web-development
     app.get("/jobs", async (req, res) => {
-      
+     
+      // console.log(req.user?.email);
+      // if(!req.user?.email){
+      //   return res.status(403).send({message: 'forbidden access'})
+      // }
+
       let query = {};
       if (req?.query?.email) {
         query = { email: req.query.email };
@@ -53,7 +106,14 @@ async function run() {
     });
 
     //get specifiec data
-    app.get("/jobs/:id", async (req, res) => {
+    app.get("/jobs/:id",async (req, res) => {
+
+
+      // if(req.user?.email !== req.query?.email){
+      //   return res.status(403).send({message: 'forbidden access'})
+      // }
+
+
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await JobsCollection.findOne(query);
@@ -105,33 +165,43 @@ async function run() {
     //get bids
     //http://localhost:5000/bids?sortField=status&sortOrder=asc
     app.get("/bids", async (req, res) => {
-       // sort
-       let filter = {}
-       let sort = {}
-       const sortField = req.query.sortField;
-       const sortOrder = req.query.sortOrder;
 
-       console.log(req.query.status);
-       const status = req.query.status;
-       if(status){
-        filter.status = filter
-       }
+      // console.log('email',req.query?.email);
+      // // check jwt token
+      // if(req.user?.email !== req.query?.email){
+      //   return res.status(403).send({message: 'forbidden access'})
+      // }
 
-       if(sortField && sortOrder){
-            sort[sortField] = sortOrder
-       }
+      // sort
+      let filter = {};
+      let sort = {};
+      const status = req.query.status;
+      const sortField = req.query.sortField;
+      const sortOrder = req.query.sortOrder;
 
-
-
-
-
-      let query = {}
-      // console.log(req.query);
-      if(req?.query?.email){
-        query = {email: req.query.email}
+      //  console.log(req.query.status);
+      if (status) {
+        filter.status = filter;
       }
-      
-      const result = await bidsCollection.find(query,filter).sort(sort).toArray();
+
+      if (sortField && sortOrder) {
+        sort[sortField] = sortOrder;
+      }
+
+      let query = {};
+      // console.log(req.query);
+      if (req?.query?.email) {
+        query = { email: req.query.email };
+      }
+
+      // if(req.query?.email !== req.user?.email){
+      //   return res.status(403).send({message: 'forbidden access'})
+      // }
+
+      const result = await bidsCollection
+        .find(query, filter)
+        .sort(sort)
+        .toArray();
       res.send(result);
     });
 
@@ -145,6 +215,12 @@ async function run() {
 
     // update a accept , reject, complete
     app.patch("/bids/:id", async (req, res) => {
+
+      // if(req.query?.email !== req.user?.email){
+      //   return res.status(403).send({message: 'forbidden access'})
+      // }
+
+
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const options = { upsert: true };
@@ -154,7 +230,11 @@ async function run() {
           status: update.status,
         },
       };
-      const result = await bidsCollection.updateOne(query, updateAccept, options);
+      const result = await bidsCollection.updateOne(
+        query,
+        updateAccept,
+        options
+      );
       res.send(result);
     });
     // Send a ping to confirm a successful connection
