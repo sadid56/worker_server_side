@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 //middleware
 app.use(cors({
-  origin: ['https://assignment-11-96d26.web.app'],
+  origin: ['https://assignment-11-96d26.web.app', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -54,7 +54,7 @@ const logger = (req, res, next) =>{
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const JobsCollection = client.db("assignment-11").collection("jobs");
     const bidsCollection = client.db("assignment-11").collection("bids");
@@ -238,7 +238,7 @@ async function run() {
       res.send(result);
     });
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
