@@ -65,7 +65,8 @@ async function run() {
       const token = jwt.sign(user, process.env.JWT_SECRET_TOKEN, {expiresIn: '1hr'})
       res.cookie('token', token, {
         httpOnly: true,
-        secure: false
+        secure: true,
+        sameSite: 'none'
       })
       res.send({success:true})
     })
