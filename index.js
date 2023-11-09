@@ -1,25 +1,23 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
-const jwt = require('jsonwebtoken')
-const cookiePerser = require('cookie-parser')
-require('dotenv').config()
+const jwt = require("jsonwebtoken");
+const cookiePerser = require("cookie-parser");
+require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
 //middleware
-app.use(cors({
-  origin: ['https://assignment-11-96d26.web.app', 'http://localhost:5173'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["https://assignment-11-96d26.web.app", "http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
-app.use(cookiePerser())
+app.use(cookiePerser());
 
-
-
-
-const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dzbhwpo.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dzbhwpo.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -30,26 +28,26 @@ const client = new MongoClient(uri, {
   },
 });
 
-// middlewares 
-const logger = (req, res, next) =>{
-  console.log('log: info', req.method, req.url);
+// middlewares
+const logger = (req, res, next) => {
+  console.log("log: info", req.method, req.url);
   next();
-}
+};
 
-  // verify jwt token in auth
-  const verifyToken = async(req, res, next)=>{
-    const token = req.cookies?.token;
-    if(!token){
-      return res.status(401).send({message: 'not authraized'})
-    }
-    jwt.verify(token, process.env.JWT_SECRET_TOKEN, (err, decoded)=>{
-      if(err){
-        return res.status(401).send({message: 'unauthorized'})
-      }
-      req.user = decoded
-      next()
-    })
+// verify jwt token in auth
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "not authraized" });
   }
+  jwt.verify(token, process.env.JWT_SECRET_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -60,30 +58,36 @@ async function run() {
     const bidsCollection = client.db("assignment-11").collection("bids");
 
     //! auth jwt token related
-    app.post('/jwt',logger, async(req, res)=>{
+    app.post("/jwt", logger, async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_SECRET_TOKEN, {expiresIn: '1hr'})
-      res.cookie('token', token, {
+      const token = jwt.sign(user, process.env.JWT_SECRET_TOKEN, {
+        expiresIn: "1hr",
+      });
+      res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'none'
-      })
-      res.send({success:true})
-    })
+        sameSite: "none",
+      });
+      res.send({ success: true });
+    });
 
-    app.post('/logOut', async(req, res)=>{
+    app.post("/logOut", async (req, res) => {
       const user = req.body;
-      console.log('log out', user);
-      res.clearCookie('token',{maxAge: 0}).send({message: 'success'})
-    })
+      console.log("log out", user);
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          secure: true,
+          httpOnly: true,
+          sameSite: "none",
+        })
+        .send({ message: "success" });
+    });
 
     //! CRUD Operation
     // job related
     // post
     app.post("/jobs", async (req, res) => {
-
-
-
       const addJobs = req.body;
       const result = await JobsCollection.insertOne(addJobs);
       res.send(result);
@@ -92,7 +96,6 @@ async function run() {
     //get
     // sort data : http://localhost:5000/jobs?category=Web-development
     app.get("/jobs", async (req, res) => {
-     
       // console.log(req.user?.email);
       // if(!req.user?.email){
       //   return res.status(403).send({message: 'forbidden access'})
@@ -107,13 +110,10 @@ async function run() {
     });
 
     //get specifiec data
-    app.get("/jobs/:id",async (req, res) => {
-
-
+    app.get("/jobs/:id", async (req, res) => {
       // if(req.user?.email !== req.query?.email){
       //   return res.status(403).send({message: 'forbidden access'})
       // }
-
 
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -166,7 +166,6 @@ async function run() {
     //get bids
     //http://localhost:5000/bids?sortField=status&sortOrder=asc
     app.get("/bids", async (req, res) => {
-
       // console.log('email',req.query?.email);
       // // check jwt token
       // if(req.user?.email !== req.query?.email){
@@ -216,11 +215,9 @@ async function run() {
 
     // update a accept , reject, complete
     app.patch("/bids/:id", async (req, res) => {
-
       // if(req.query?.email !== req.user?.email){
       //   return res.status(403).send({message: 'forbidden access'})
       // }
-
 
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
